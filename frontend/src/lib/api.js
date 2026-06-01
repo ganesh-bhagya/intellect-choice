@@ -1,5 +1,21 @@
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
 
+function getApiOrigin() {
+  try {
+    return new URL(API_BASE).origin;
+  } catch {
+    return '';
+  }
+}
+
+export function resolveMediaUrl(path) {
+  if (!path) return '';
+  if (/^https?:\/\//i.test(path)) return path;
+  const origin = getApiOrigin();
+  if (path.startsWith('/')) return `${origin}${path}`;
+  return `${origin}/${path}`;
+}
+
 async function request(path, options = {}) {
   const body = options.body;
   const isFormData = body instanceof FormData;
@@ -119,6 +135,53 @@ export function deleteJob(id) {
   });
 }
 
+// Blogs (admin)
+export function fetchAdminBlogs() {
+  return request('/admin/blogs');
+}
+
+export function createBlog(data) {
+  return request('/admin/blogs', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function uploadBlogImage(file) {
+  const form = new FormData();
+  form.append('image', file);
+  return request('/admin/blogs/upload-image', {
+    method: 'POST',
+    body: form,
+  });
+}
+
+export function updateBlog(id, data) {
+  return request(`/admin/blogs/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteBlog(id) {
+  return request(`/admin/blogs/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// Blogs (public)
+export function fetchPublicBlogs({ limit, offset } = {}) {
+  const params = new URLSearchParams();
+  if (limit != null) params.set('limit', String(limit));
+  if (offset != null) params.set('offset', String(offset));
+  const qs = params.toString();
+  return request(`/blogs${qs ? `?${qs}` : ''}`);
+}
+
+export function fetchBlogBySlug(slug) {
+  return request(`/blogs/${encodeURIComponent(slug)}`);
+}
+
 export default {
   submitContact,
   submitApplication,
@@ -130,4 +193,11 @@ export default {
   createJob,
   updateJob,
   deleteJob,
+  fetchAdminBlogs,
+  createBlog,
+  uploadBlogImage,
+  updateBlog,
+  deleteBlog,
+  fetchPublicBlogs,
+  fetchBlogBySlug,
 };

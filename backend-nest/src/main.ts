@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
+import express from 'express';
 
 // Load .env from backend-nest root before any module (so SMTP_* etc. are in process.env)
 import { config as loadEnv } from 'dotenv';
@@ -26,6 +27,7 @@ async function bootstrap() {
     origin: corsOrigin,
     credentials: true,
   });
+  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
   await app.listen(port);
 }

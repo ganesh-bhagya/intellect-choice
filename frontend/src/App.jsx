@@ -7,6 +7,8 @@ const About = lazy(() => import("./pages/About"))
 const Services = lazy(() => import("./pages/Services"))
 const Careers = lazy(() => import("./pages/Careers"))
 const Contact = lazy(() => import("./pages/Contact"))
+const Blogs = lazy(() => import("./pages/Blogs"))
+const BlogDetail = lazy(() => import("./pages/BlogDetail"))
 const JobApplication = lazy(() => import("./pages/JobApplication"))
 const Admin = lazy(() => import("./pages/Admin"))
 const AdminLogin = lazy(() => import("./pages/AdminLogin"))
@@ -19,6 +21,8 @@ function App() {
         <Route path="about" element={<About />} />
         <Route path="services" element={<Services />} />
         <Route path="careers" element={<Careers />} />
+        <Route path="blogs" element={<Blogs />} />
+        <Route path="blogs/:slug" element={<BlogDetail />} />
         <Route path="contact" element={<Contact />} />
         <Route path="careers/apply" element={<JobApplication />} />
         <Route path="admin" element={<Admin />} />

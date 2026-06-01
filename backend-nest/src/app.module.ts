@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { ContactModule } from './contact/contact.module';
 import { ApplicationModule } from './application/application.module';
 import { JobModule } from './job/job.module';
+import { BlogModule } from './blog/blog.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { JobModule } from './job/job.module';
     ContactModule,
     ApplicationModule,
     JobModule,
+    BlogModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -139,7 +139,7 @@ export default function Home() {
 
         {/* Vertical contact bar - right edge (outside padded container) */}
         <motion.a
-          href={`tel:${SITE.contact.phone}`}
+          href={`tel:${SITE.contact.phoneNZ.replace(/[^\d+]/g, "")}`}
           initial={{ opacity: 0, x: 24 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.85, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -150,7 +150,7 @@ export default function Home() {
     className="text-sm font-medium tracking-wider"
     style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
   >
-    +94 (0) 777696383
+    {SITE.contact.phoneNZ}
   </span>
 
   <svg

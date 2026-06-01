@@ -6,6 +6,8 @@ import {
   AboutHowWeDoSection,
   AboutWhyChooseUsSection,
   AboutCtaSection,
+  AboutMeetTeamSection,
+  AboutClientsSection,
 } from "../components/sections/about"
 
 export default function About() {
@@ -22,6 +24,8 @@ export default function About() {
       <AboutMissionVisionSection />
       <AboutHowWeDoSection />
       <AboutWhyChooseUsSection />
+      <AboutMeetTeamSection />
+      <AboutClientsSection />
     </>
   )
 }

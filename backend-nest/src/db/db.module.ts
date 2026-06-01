@@ -72,6 +72,26 @@ export const DB_POOL = 'DB_POOL';
           await pool.query('ALTER TABLE jobs ADD COLUMN category VARCHAR(100) DEFAULT NULL');
         } catch (_) {}
 
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS blogs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            slug VARCHAR(255) NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            cover_image VARCHAR(500) DEFAULT NULL,
+            short_description TEXT DEFAULT NULL,
+            content_html LONGTEXT DEFAULT NULL,
+            is_published TINYINT(1) NOT NULL DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_blogs_slug (slug)
+          )
+        `);
+        try {
+          await pool.query(
+            'ALTER TABLE blogs ADD COLUMN cover_image VARCHAR(500) DEFAULT NULL AFTER title',
+          );
+        } catch (_) {}
+
         // Admin users table (for admin credentials instead of only env-based)
         await pool.query(`
           CREATE TABLE IF NOT EXISTS admins (

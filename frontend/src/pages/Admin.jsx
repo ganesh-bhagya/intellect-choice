@@ -11,6 +11,12 @@ import {
   createJob,
   updateJob,
   deleteJob,
+  fetchAdminBlogs,
+  createBlog,
+  updateBlog,
+  deleteBlog,
+  uploadBlogImage,
+  resolveMediaUrl,
   getCvDownloadUrl,
   downloadCv,
 } from "../lib/api"
@@ -20,6 +26,7 @@ export default function Admin() {
   const [contacts, setContacts] = useState([])
   const [applications, setApplications] = useState([])
   const [jobs, setJobs] = useState([])
+  const [blogs, setBlogs] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [authChecked, setAuthChecked] = useState(false)
@@ -35,6 +42,17 @@ export default function Admin() {
     description: "",
     isActive: true,
   })
+
+  const [blogForm, setBlogForm] = useState({
+    id: null,
+    title: "",
+    coverImage: "",
+    shortDescription: "",
+    contentHtml: "",
+    isPublished: true,
+  })
+  const [blogImageFile, setBlogImageFile] = useState(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   useEffect(() => {
     fetchAdminMe()
@@ -54,10 +72,16 @@ export default function Admin() {
     const load = async () => {
       try {
         setLoading(true)
-        const [c, a, j] = await Promise.all([fetchContacts(), fetchApplications(), fetchJobs()])
+        const [c, a, j, b] = await Promise.all([
+          fetchContacts(),
+          fetchApplications(),
+          fetchJobs(),
+          fetchAdminBlogs(),
+        ])
         setContacts(c.contacts || [])
         setApplications(a.applications || [])
         setJobs(j.jobs || [])
+        setBlogs(b.blogs || [])
       } catch (err) {
         setError(err.message || "Failed to load admin data")
       } finally {
@@ -80,9 +104,29 @@ export default function Admin() {
     })
   }
 
+  const resetBlogForm = () => {
+    setBlogForm({
+      id: null,
+      title: "",
+      coverImage: "",
+      shortDescription: "",
+      contentHtml: "",
+      isPublished: true,
+    })
+    setBlogImageFile(null)
+  }
+
   const handleJobFieldChange = (e) => {
     const { name, value, type, checked } = e.target
     setJobForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }))
+  }
+
+  const handleBlogFieldChange = (e) => {
+    const { name, value, type, checked } = e.target
+    setBlogForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }))
@@ -100,6 +144,19 @@ export default function Admin() {
     })
   }
 
+  const handleBlogEdit = (blog) => {
+    setBlogForm({
+      id: blog.id,
+      title: blog.title || "",
+      coverImage: blog.coverImage || "",
+      shortDescription: blog.shortDescription || "",
+      contentHtml: blog.contentHtml || "",
+      isPublished: blog.isPublished === true || blog.is_published === 1,
+    })
+    setBlogImageFile(null)
+    setActiveTab("blogs")
+  }
+
   const handleJobDelete = async (id) => {
     setError("")
     try {
@@ -107,6 +164,16 @@ export default function Admin() {
       setJobs((prev) => prev.filter((j) => j.id !== id))
     } catch (err) {
       setError(err.message || "Failed to delete job")
+    }
+  }
+
+  const handleBlogDelete = async (id) => {
+    setError("")
+    try {
+      await deleteBlog(id)
+      setBlogs((prev) => prev.filter((b) => b.id !== id))
+    } catch (err) {
+      setError(err.message || "Failed to delete blog")
     }
   }
 
@@ -133,6 +200,53 @@ export default function Admin() {
       resetJobForm()
     } catch (err) {
       setError(err.message || "Failed to save job")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBlogImageUpload = async () => {
+    if (!blogImageFile) return
+    setError("")
+    try {
+      setUploadingImage(true)
+      const res = await uploadBlogImage(blogImageFile)
+      setBlogForm((prev) => ({ ...prev, coverImage: res.imagePath || "" }))
+      setBlogImageFile(null)
+    } catch (err) {
+      setError(err.message || "Failed to upload image")
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const handleBlogSubmit = async (e) => {
+    e.preventDefault()
+    setError("")
+    try {
+      setLoading(true)
+      let coverImagePath = blogForm.coverImage
+      if (blogImageFile) {
+        const uploaded = await uploadBlogImage(blogImageFile)
+        coverImagePath = uploaded.imagePath || coverImagePath
+      }
+      const payload = {
+        title: blogForm.title,
+        coverImage: coverImagePath,
+        shortDescription: blogForm.shortDescription,
+        contentHtml: blogForm.contentHtml,
+        isPublished: blogForm.isPublished,
+      }
+      if (!blogForm.id) {
+        const res = await createBlog(payload)
+        setBlogs((prev) => [res.blog, ...prev])
+      } else {
+        const res = await updateBlog(blogForm.id, payload)
+        setBlogs((prev) => prev.map((b) => (b.id === blogForm.id ? res.blog : b)))
+      }
+      resetBlogForm()
+    } catch (err) {
+      setError(err.message || "Failed to save blog")
     } finally {
       setLoading(false)
     }
@@ -225,6 +339,17 @@ export default function Admin() {
                     }`}
                   >
                     Jobs
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("blogs")}
+                    className={`pb-2 px-1 border-b-2 whitespace-nowrap ${
+                      activeTab === "blogs"
+                        ? "border-primary text-primary font-semibold"
+                        : "border-transparent text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Blogs
                   </button>
                 </nav>
               </div>
@@ -470,6 +595,189 @@ export default function Admin() {
                                   <button
                                     type="button"
                                     onClick={() => handleJobDelete(job.id)}
+                                    className="text-xs px-3 py-1 rounded-full border border-red-200 text-red-600"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === "blogs" && (
+                    <div>
+                      <h2 className="text-xl font-semibold mb-3">Blogs</h2>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <form
+                          onSubmit={handleBlogSubmit}
+                          className="bg-[#F3F3F3] rounded-3xl p-6 space-y-4"
+                        >
+                          <h3 className="text-lg font-semibold mb-2">
+                            {blogForm.id ? "Edit blog" : "Create new blog"}
+                          </h3>
+                          <div>
+                            <label className="block text-sm font-medium mb-1" htmlFor="blog-title">
+                              Title
+                            </label>
+                            <input
+                              id="blog-title"
+                              name="title"
+                              value={blogForm.title}
+                              onChange={handleBlogFieldChange}
+                              required
+                              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              The slug is generated automatically from the title.
+                            </p>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium mb-1" htmlFor="blog-short">
+                              Short description
+                            </label>
+                            <textarea
+                              id="blog-short"
+                              name="shortDescription"
+                              value={blogForm.shortDescription}
+                              onChange={handleBlogFieldChange}
+                              rows={3}
+                              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium mb-1" htmlFor="blog-image">
+                              Main image
+                            </label>
+                            <input
+                              id="blog-image"
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                              onChange={(e) => setBlogImageFile(e.target.files?.[0] || null)}
+                              className="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-primary file:text-white file:font-semibold file:cursor-pointer hover:file:bg-primary-dark"
+                            />
+                            <div className="mt-2 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={handleBlogImageUpload}
+                                disabled={!blogImageFile || uploadingImage}
+                                className="text-xs px-3 py-1 rounded-full border border-gray-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                {uploadingImage ? "Uploading…" : "Upload image"}
+                              </button>
+                              <span className="text-xs text-gray-500">
+                                You can also just click Create/Update; selected file auto-uploads.
+                              </span>
+                              {blogForm.coverImage && (
+                                <span className="text-xs text-gray-500 break-all">
+                                  {blogForm.coverImage}
+                                </span>
+                              )}
+                            </div>
+                            {blogForm.coverImage && (
+                              <img
+                                src={resolveMediaUrl(blogForm.coverImage)}
+                                alt="Blog cover preview"
+                                className="mt-3 w-full max-w-xs rounded-xl object-cover aspect-4/3 border border-gray-200"
+                              />
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium mb-1">
+                              Content
+                            </label>
+                            <RichTextEditor
+                              value={blogForm.contentHtml}
+                              onChange={(value) =>
+                                setBlogForm((prev) => ({ ...prev, contentHtml: value }))
+                              }
+                              placeholder="Blog content (rich text)..."
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <label className="inline-flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                name="isPublished"
+                                checked={blogForm.isPublished}
+                                onChange={handleBlogFieldChange}
+                                className="rounded border-gray-300"
+                              />
+                              <span>Published</span>
+                            </label>
+                            <div className="space-x-2">
+                              {blogForm.id && (
+                                <button
+                                  type="button"
+                                  onClick={resetBlogForm}
+                                  className="text-sm px-3 py-1 rounded-full border border-gray-300"
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                              <button
+                                type="submit"
+                                disabled={loading}
+                                className="inline-flex items-center justify-center bg-primary text-white px-4 py-1.5 rounded-full text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                {blogForm.id ? "Update blog" : "Create blog"}
+                              </button>
+                            </div>
+                          </div>
+                        </form>
+
+                        <div className="space-y-3">
+                          {blogs.length === 0 ? (
+                            <p className="text-gray-500 text-sm">No blogs yet.</p>
+                          ) : (
+                            blogs.map((b) => (
+                              <div key={b.id} className="border rounded-xl p-4 bg-white">
+                                <div className="flex justify-between items-start gap-4 mb-2">
+                                  <div className="min-w-0">
+                                    <h3 className="font-semibold text-sm truncate">{b.title}</h3>
+                                    <p className="text-xs text-gray-500 truncate">
+                                      Slug: <span className="font-mono">{b.slug}</span>
+                                    </p>
+                                  </div>
+                                  <span
+                                    className={`text-xs px-2 py-0.5 rounded-full ${
+                                      b.isPublished ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"
+                                    }`}
+                                  >
+                                    {b.isPublished ? "Published" : "Draft"}
+                                  </span>
+                                </div>
+                                {b.coverImage && (
+                                  <img
+                                    src={resolveMediaUrl(b.coverImage)}
+                                    alt=""
+                                    className="w-full h-28 object-cover rounded-lg mb-2 border border-gray-100"
+                                    loading="lazy"
+                                  />
+                                )}
+                                {b.shortDescription && (
+                                  <p className="text-sm text-gray-700 line-clamp-3">
+                                    {b.shortDescription}
+                                  </p>
+                                )}
+                                <div className="flex justify-end gap-2 mt-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleBlogEdit(b)}
+                                    className="text-xs px-3 py-1 rounded-full border border-gray-300"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleBlogDelete(b.id)}
                                     className="text-xs px-3 py-1 rounded-full border border-red-200 text-red-600"
                                   >
                                     Delete

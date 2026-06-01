@@ -2,6 +2,10 @@ import { AppLink } from "../../context/NavigationContext"
 import { Logo, LogoFooter } from "../common/Logo"
 import { SITE } from "../../config/site"
 
+function telHref(display) {
+  return `tel:${String(display).replace(/[^\d+]/g, "")}`
+}
+
 function ContactIcon({ type }) {
   const icons = {
     email: (
@@ -63,19 +67,19 @@ export function Footer() {
             <ul className="space-y-3 flex flex-col items-center md:items-start">
               <li className="flex items-center justify-center md:justify-start gap-2 text-white">
                 <ContactIcon type="email" />
-                <a href={`mailto:${SITE.contact.email}`} className="hover:text-white transition-colors">
-                  {SITE.contact.email}
+                <a href={`mailto:${SITE.contact.emailNZ}`} className="hover:text-white transition-colors">
+                  {SITE.contact.emailNZ}
                 </a>
               </li>
               <li className="flex items-center justify-center md:justify-start gap-2 text-white">
                 <ContactIcon type="phone" />
-                <a href={`tel:${SITE.contact.phone}`} className="hover:text-white transition-colors">
-                  {SITE.contact.phone}
+                <a href={telHref(SITE.contact.phoneNZ)} className="hover:text-white transition-colors">
+                  {SITE.contact.phoneNZ}
                 </a>
               </li>
               <li className="flex items-center justify-center md:justify-start gap-2 text-white">
                 <ContactIcon type="location" />
-                <span>{SITE.contact.address}</span>
+                <span>{SITE.contact.addressNZ}</span>
               </li>
             </ul>
           </div>
